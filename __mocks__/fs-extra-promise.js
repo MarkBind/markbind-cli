@@ -40,15 +40,16 @@ fs.copyAsync = (src, dest, options) => new Promise((resolve, reject) => {
   const isDirectory = pathObj.ext === '';
 
   if (isDirectory) {
-    const newDirectory = fs.mockFileSystem.makeDirectory(dest);
+    const newDirectory = fs.mockFileSystem.createDirectory(dest);
     const directory = fs.mockFileSystem.getDirectory(src);
-    Object.keys(directory.files).forEach(fileName => newDirectory.storeFile(fileName, directory.files[fileName].content));
+    Object.keys(directory.files)
+      .forEach(fileName => newDirectory.storeFileInDir(fileName, directory.files[fileName].content));
 
     Object.keys(directory.subDirectories).forEach((subDirName) => {
       fs.copyAsync(path.join(src, subDirName), path.join(dest, subDirName));
     });
   } else {
-    fs.mockFileSystem.storeFile(dest);
+    fs.mockFileSystem.storeFileInDir(dest);
   }
   resolve();
 });

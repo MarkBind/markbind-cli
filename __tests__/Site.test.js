@@ -12,7 +12,7 @@ const getPath = (...toJoin) => path.resolve(toJoin.join(path.sep));
 
 const mockFileSystem = new MockFileSystem();
 mockFileSystem.storeFile(getPath('index.md'));
-mockFileSystem.makeDirectory(getPath('_boilerplates'));
+mockFileSystem.createDirectory(getPath('_boilerplates'));
 mockFileSystem.storeFile(getPath('site.json'), {
   baseUrl: '',
   pages: [
@@ -54,13 +54,13 @@ mockFileSystem
            + '<script src="<%- asset.setup %>"></script>\n'
            + '</html>\n');
 
-mockFileSystem.makeDirectory(getPath('asset'));
+mockFileSystem.createDirectory(getPath('asset'));
 
 mockFileSystem.storeFile(getPath('asset', 'css', 'bootstrap.min.css'));
 mockFileSystem.storeFile(getPath('asset', 'css', 'github.min.css'));
 mockFileSystem.storeFile(getPath('asset', 'css', 'markbind.css'));
 
-mockFileSystem.makeDirectory(getPath('asset', 'fonts'));
+mockFileSystem.createDirectory(getPath('asset', 'fonts'));
 // all the fonts should be here..
 
 mockFileSystem.storeFile(getPath('asset', 'js', 'setup.js'));
