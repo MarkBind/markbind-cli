@@ -4,7 +4,7 @@ const path = require('path');
 
 const walkSync = (directory) => {
   // not comprehensive of sub-sites yet.
-  const toRet = Object.keys(walkSync.mockDirectory.getDirectory(directory).files);
+  const toRet = Object.keys(walkSync.mockFileSystem.getDirectory(directory).files);
   return toRet;
 };
 

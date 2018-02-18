@@ -28,7 +28,7 @@ class MockFileSystem {
 
   makeDirectory(dirName) {
     const dirNames = dirName.split(path.sep);
-    this.getDeepestDir(dirNames);
+    return this.getDeepestDir(dirNames);
   }
 
   getDeepestDir(dirNames) {

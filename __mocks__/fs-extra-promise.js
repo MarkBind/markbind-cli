@@ -2,7 +2,7 @@
 const fs = jest.genMockFromModule('fs-extra-promise');
 const path = require('path');
 
-fs.mockDirectory;
+fs.mockFileSystem;
 
 /**
  * Mocking fs#readFileSync:
@@ -12,34 +12,7 @@ fs.mockDirectory;
  * @returns {string}
  */
 
-fs.readFileSync = (filepath, options) => {
-  const { base } = path.parse(filepath);
-  switch (base) {
-  case 'page.ejs':
-    return '<!DOCTYPE html>\n'
-      + '<html>\n'
-      + '<head>\n'
-      + '    <meta charset="utf-8">\n'
-      + '    <meta http-equiv="X-UA-Compatible" content="IE=edge">\n'
-      + '    <meta name="viewport" content="width=device-width, initial-scale=1">\n'
-      + '    <title><%= title %></title>\n'
-      + '    <link rel="stylesheet" href="<%- asset.bootstrap %>">\n'
-      + '    <link rel="stylesheet" href="<%- asset.highlight %>">\n'
-      + '    <link rel="stylesheet" href="<%- asset.markbind %>">\n'
-      + '</head>\n'
-      + '<body>\n'
-      + '<div id="app" class="container-fluid">\n'
-      + '    <%- content %>\n'
-      + '</div>\n'
-      + '</body>\n'
-      + '<script src="<%- asset.vue %>"></script>\n'
-      + '<script src="<%- asset.vueStrap %>"></script>\n'
-      + '<script src="<%- asset.setup %>"></script>\n'
-      + '</html>\n';
-  default:
-    return 'haha';
-  }
-};
+fs.readFileSync = (filepath, options) => fs.mockFileSystem.getFileContent(filepath);
 
 
 /**
@@ -55,7 +28,7 @@ fs.emptydirSync = (filePath) => {
  *
  * @param filePath
  */
-fs.readJsonAsync = filePath => Promise.resolve(fs.mockDirectory.getFileContent(filePath));
+fs.readJsonAsync = filePath => Promise.resolve(fs.mockFileSystem.getFileContent(filePath));
 
 /**
  * Mocking fs-extra-promise#copyAsync
@@ -63,8 +36,20 @@ fs.readJsonAsync = filePath => Promise.resolve(fs.mockDirectory.getFileContent(f
  * @param filePath
  */
 fs.copyAsync = (src, dest, options) => new Promise((resolve, reject) => {
-  console.log(dest);
-  fs.mockDirectory.storeFile(dest, src);
+  const pathObj = path.parse(src);
+  const isDirectory = pathObj.ext === '';
+
+  if (isDirectory) {
+    const newDirectory = fs.mockFileSystem.makeDirectory(dest);
+    const directory = fs.mockFileSystem.getDirectory(src);
+    Object.keys(directory.files).forEach(fileName => newDirectory.storeFile(fileName, directory.files[fileName].content));
+
+    Object.keys(directory.subDirectories).forEach((subDirName) => {
+      fs.copyAsync(path.join(src, subDirName), path.join(dest, subDirName));
+    });
+  } else {
+    fs.mockFileSystem.storeFile(dest);
+  }
   resolve();
 });
 

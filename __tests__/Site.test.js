@@ -8,13 +8,12 @@ jest.mock('fs');
 jest.mock('walk-sync');
 jest.mock('../lib/Page');
 
-// if you are testing with npm run test, ROOT = path/to/markbind-cli/
-const ROOT = path.resolve('');
+const getPath = (...toJoin) => path.resolve(toJoin.join(path.sep));
 
-const mockDirectory = new MockFileSystem();
-mockDirectory.storeFile(path.resolve(ROOT, 'index.md'));
-mockDirectory.makeDirectory(path.resolve(ROOT, '_boilerplates'));
-mockDirectory.storeFile(path.resolve(ROOT, 'site.json'), {
+const mockFileSystem = new MockFileSystem();
+mockFileSystem.storeFile(getPath('index.md'));
+mockFileSystem.makeDirectory(getPath('_boilerplates'));
+mockFileSystem.storeFile(getPath('site.json'), {
   baseUrl: '',
   pages: [
     {
@@ -32,20 +31,77 @@ mockDirectory.storeFile(path.resolve(ROOT, 'site.json'), {
   },
 });
 
-test('site test', () => {
-  fs.mockDirectory = mockDirectory;
-  walkSync.mockDirectory = mockDirectory;
-  const site = new Site(ROOT, path.join(ROOT, '_site'));
-  return site.generate().then(() => {
-    expect(mockDirectory.containsFile(path.resolve(ROOT, 'index.md'))).toBeTruthy();
-    expect(mockDirectory.containsDirectory(path.resolve(ROOT, '_boilerplates'))).toBeTruthy();
-    expect(mockDirectory.containsFile(path.resolve(ROOT, 'site.json'))).toBeTruthy();
-    expect(mockDirectory.containsDirectory(path.resolve(ROOT, '_site'))).toBeTruthy();
+mockFileSystem
+  .storeFile(getPath('lib', 'template', 'page.ejs'),
+             '<!DOCTYPE html>\n'
+           + '<html>\n'
+           + '<head>\n'
+           + '    <meta charset="utf-8">\n'
+           + '    <meta http-equiv="X-UA-Compatible" content="IE=edge">\n'
+           + '    <meta name="viewport" content="width=device-width, initial-scale=1">\n'
+           + '    <title><%= title %></title>\n'
+           + '    <link rel="stylesheet" href="<%- asset.bootstrap %>">\n'
+           + '    <link rel="stylesheet" href="<%- asset.highlight %>">\n'
+           + '    <link rel="stylesheet" href="<%- asset.markbind %>">\n'
+           + '</head>\n'
+           + '<body>\n'
+           + '<div id="app" class="container-fluid">\n'
+           + '    <%- content %>\n'
+           + '</div>\n'
+           + '</body>\n'
+           + '<script src="<%- asset.vue %>"></script>\n'
+           + '<script src="<%- asset.vueStrap %>"></script>\n'
+           + '<script src="<%- asset.setup %>"></script>\n'
+           + '</html>\n');
 
-    // currently copied directories will be saved as File as there is no way to reproduce the
-    // sub directories without reading from disk
-    expect(mockDirectory.containsFile(path.resolve(ROOT, `_site${path.sep}markbind`))).toBeTruthy();
-    expect(mockDirectory.getFileContent(path.resolve(ROOT, `_site${path.sep}markbind`)))
-      .toEqual(path.resolve(ROOT, 'asset'));
+mockFileSystem.makeDirectory(getPath('asset'));
+
+mockFileSystem.storeFile(getPath('asset', 'css', 'bootstrap.min.css'));
+mockFileSystem.storeFile(getPath('asset', 'css', 'github.min.css'));
+mockFileSystem.storeFile(getPath('asset', 'css', 'markbind.css'));
+
+mockFileSystem.makeDirectory(getPath('asset', 'fonts'));
+// all the fonts should be here..
+
+mockFileSystem.storeFile(getPath('asset', 'js', 'setup.js'));
+mockFileSystem.storeFile(getPath('asset', 'js', 'vue.min.js'));
+mockFileSystem.storeFile(getPath('asset', 'js', 'vue-strap.min.js'));
+
+
+test('Site Generate builds the correct amount of assets', () => {
+  fs.mockFileSystem = mockFileSystem;
+  walkSync.mockFileSystem = mockFileSystem;
+  const site = new Site(path.resolve(''), path.resolve('_site'));
+  return site.generate().then(() => {
+    // _site folder
+    expect(mockFileSystem.containsDirectory(getPath('_site'))).toBeTruthy();
+
+    // markbind assets
+    expect(mockFileSystem.containsDirectory(getPath('_site', 'markbind'))).toBeTruthy();
+
+    // js
+    expect(mockFileSystem.containsDirectory(getPath('_site', 'markbind', 'js'))).toBeTruthy();
+    expect(mockFileSystem.containsFile(getPath('_site', 'markbind', 'js', 'setup.js'))).toBeTruthy();
+    expect(mockFileSystem.containsFile(getPath('_site', 'markbind', 'js', 'vue.min.js'))).toBeTruthy();
+    expect(mockFileSystem.containsFile(getPath('_site', 'markbind', 'js', 'vue-strap.min.js'))).toBeTruthy();
+
+    // css
+    expect(mockFileSystem.containsDirectory(getPath('_site', 'markbind', 'css'))).toBeTruthy();
+    expect(mockFileSystem.containsFile(getPath('_site', 'markbind', 'css', 'bootstrap.min.css'))).toBeTruthy();
+    expect(mockFileSystem.containsFile(getPath('_site', 'markbind', 'css', 'github.min.css'))).toBeTruthy();
+    expect(mockFileSystem.containsFile(getPath('_site', 'markbind', 'css', 'markbind.css'))).toBeTruthy();
+
+    // fonts
+    expect(mockFileSystem.containsDirectory(getPath('_site', 'markbind', 'fonts'))).toBeTruthy();
+
+    console.log(mockFileSystem.mainDirectory
+      .subDirectories['D:']
+      .subDirectories['NUS Year 2']
+      .subDirectories.SEM2
+      .subDirectories.markbind
+      .subDirectories['markbind-cli']
+      .subDirectories['_site']
+      .subDirectories['markbind']
+      .subDirectories['js']);
   });
 });
