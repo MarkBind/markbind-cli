@@ -2,11 +2,21 @@
 const path = require('path');
 const { fs, vol } = require('memfs');
 
+fs.readJsonSync = filePath => {
+  return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+}
+
 /**
  * Mocking fs-extra-promise#readJsonAsync
  * TODO: Error throwing
  */
-fs.readJsonAsync = filePath => Promise.resolve(JSON.parse(fs.readFileSync(filePath, 'utf8')));
+fs.readJsonAsync = filePath => new Promise((resolve, reject) => {
+  try {
+    resolve(fs.readJsonSync(filePath));
+  } catch (err) {
+    reject(err);
+  }
+});
 
 /**
  * Remove directory recursively
@@ -133,5 +143,38 @@ fs.copySync = (src, dest) => {
   }
 };
 
+/**
+ * Mocking fs-extra-promise#copyAsync
+ */
+fs.accessAsync = pathArg => new Promise((resolve, reject) => {
+  try {
+    fs.accessSync(pathArg);
+    resolve();
+  } catch (err) {
+    reject(err);
+  }
+});
+
+fs.outputFileAsync = (file, data) => new Promise((resolve, reject) => {
+  try {
+    fs.outputFileSync(file, data);
+    resolve();
+  } catch (err) {
+    reject(err);
+  }
+});
+
+fs.outputJsonSync = (file, jsonData) => {
+  fs.outputFileSync(file, JSON.stringify(jsonData));
+};
+
+fs.outputJsonAsync = (file, jsonData) => new Promise((resolve, reject) => {
+  try {
+    fs.outputJsonSync(file, jsonData);
+    resolve();
+  } catch (err) {
+    reject(err);
+  }
+});
 fs.vol = vol;
 module.exports = fs;
