@@ -37,4 +37,4 @@ module.exports.SITE_JSON_DEFAULT = '{\n'
   + '  }\n'
   + '}\n';
 
-module.exports.INDEX_MD = '# Hello world\nWelcome to your page generated with MarkBind.\n';
+module.exports.INDEX_MD_DEFAULT = '# Hello world\nWelcome to your page generated with MarkBind.\n';

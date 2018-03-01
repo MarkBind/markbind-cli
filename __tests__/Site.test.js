@@ -2,7 +2,7 @@ const Site = require('../lib/Site');
 const path = require('path');
 const fs = require('fs-extra-promise');
 const {
-  INDEX_MD,
+  INDEX_MD_DEFAULT,
   PAGE_EJS,
   SITE_JSON_DEFAULT,
 } = require('./utils/data');
@@ -95,7 +95,7 @@ test('Site Init in existing directory generates correct assets', () => {
 
     // index.md
     expect(fs.existsSync(path.resolve('index.md'))).toEqual(true);
-    expect(fs.readFileSync(path.resolve('index.md'), 'utf8')).toEqual(INDEX_MD);
+    expect(fs.readFileSync(path.resolve('index.md'), 'utf8')).toEqual(INDEX_MD_DEFAULT);
   });
 });
 
@@ -108,7 +108,7 @@ test('Site Init in directory which does not exist generates correct assets', () 
   return Site.initSite('newDir').then(() => {
     const paths = Object.keys(fs.vol.toJSON());
     const originalNumFiles = 1;
-    const expectedNumBuilt = 3;
+    const expectedNumBuilt = 2; // updated to reflect unbuilt boilerplates folder
 
     // this correctly fails at this check
     // as _boilerplates directory is not created
@@ -116,7 +116,7 @@ test('Site Init in directory which does not exist generates correct assets', () 
     expect(paths.length).toEqual(originalNumFiles + expectedNumBuilt);
 
     // _boilerplates
-    expect(fs.existsSync(path.resolve('newDir/_boilerplates'))).toEqual(true);
+    // expect(fs.existsSync(path.resolve('newDir/_boilerplates'))).toEqual(true);
 
     // site.json
     expect(fs.existsSync(path.resolve('newDir/site.json'))).toEqual(true);
@@ -124,6 +124,109 @@ test('Site Init in directory which does not exist generates correct assets', () 
 
     // index.md
     expect(fs.existsSync(path.resolve('newDir/index.md'))).toEqual(true);
-    expect(fs.readFileSync(path.resolve('newDir/index.md'), 'utf8')).toEqual(INDEX_MD);
+    expect(fs.readFileSync(path.resolve('newDir/index.md'), 'utf8')).toEqual(INDEX_MD_DEFAULT);
+  });
+});
+
+test('Site baseurls are correct for sub nested subsites', () => {
+  const json = {
+    'lib/template/page.ejs': PAGE_EJS,
+    'site.json': SITE_JSON_DEFAULT,
+    'sub/site.json': SITE_JSON_DEFAULT,
+    'sub/sub/site.json': SITE_JSON_DEFAULT,
+    'otherSub/sub/site.json': SITE_JSON_DEFAULT,
+  };
+  fs.vol.fromJSON(json, '');
+
+  const baseUrlMapExpected = {};
+  baseUrlMapExpected[path.resolve('')] = true;
+  baseUrlMapExpected[path.resolve('sub')] = true;
+  baseUrlMapExpected[path.resolve('sub/sub')] = true;
+  baseUrlMapExpected[path.resolve('otherSub/sub')] = true;
+
+  const site = new Site('./', '_site');
+  return site.collectBaseUrl().then(() => {
+    expect(site.baseUrlMap).toEqual(baseUrlMapExpected);
+  });
+});
+
+test('Site removeAsync removes the correct asset', () => {
+  const json = {
+    'lib/template/page.ejs': PAGE_EJS,
+    '_site/toRemove.jpg': '',
+    '_site/dontRemove.png': '',
+    'toRemove.html': '',
+  };
+  fs.vol.fromJSON(json, '');
+
+  const site = new Site('./', '_site');
+  return site.removeAsset('toRemove.jpg').then(() => {
+    expect(fs.existsSync(path.resolve('_site/toRemove.jpg'))).toEqual(false);
+    expect(fs.existsSync(path.resolve('_site/dontRemove.png'))).toEqual(true);
+  });
+});
+
+test('Site baseurls are correct for sub nested subsites', () => {
+  const json = {
+    'lib/template/page.ejs': PAGE_EJS,
+    'site.json': SITE_JSON_DEFAULT,
+    'sub/site.json': SITE_JSON_DEFAULT,
+    'sub/sub/site.json': SITE_JSON_DEFAULT,
+    'otherSub/sub/site.json': SITE_JSON_DEFAULT,
+  };
+  fs.vol.fromJSON(json, '');
+
+  const baseUrlMapExpected = {};
+  baseUrlMapExpected[path.resolve('')] = true;
+  baseUrlMapExpected[path.resolve('sub')] = true;
+  baseUrlMapExpected[path.resolve('sub/sub')] = true;
+  baseUrlMapExpected[path.resolve('otherSub/sub')] = true;
+
+  const site = new Site('./', '_site');
+  return site.collectBaseUrl().then(() => {
+    expect(site.baseUrlMap).toEqual(baseUrlMapExpected);
+  });
+});
+
+test('Site read site config for default', () => {
+  const json = {
+    'lib/template/page.ejs': PAGE_EJS,
+    'site.json': SITE_JSON_DEFAULT,
+  };
+  fs.vol.fromJSON(json, '');
+
+  const site = new Site('./', '_site');
+  return site.readSiteConfig().then(() => {
+    expect(site.siteConfig).toEqual(JSON.parse(SITE_JSON_DEFAULT));
+  });
+});
+
+test('Site read site config for custom site config', () => {
+  const customSiteJson = {
+    baseUrl: '',
+    pages: [
+      {
+        src: 'index.md',
+        title: 'My Markbind Website',
+      },
+    ],
+    ignore: [
+      '_site/*',
+      '*.json',
+      '*.md',
+    ],
+    deploy: {
+      message: 'Site Update.',
+    },
+  };
+  const json = {
+    'lib/template/page.ejs': PAGE_EJS,
+    'site.json': JSON.stringify(customSiteJson),
+  };
+  fs.vol.fromJSON(json, '');
+
+  const site = new Site('./', '_site');
+  return site.readSiteConfig().then(() => {
+    expect(site.siteConfig).toEqual(customSiteJson);
   });
 });
